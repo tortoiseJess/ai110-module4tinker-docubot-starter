@@ -9,6 +9,7 @@ Core DocuBot class responsible for:
 
 import os
 import glob
+import string
 
 class DocuBot:
     def __init__(self, docs_folder="docs", llm_client=None):
@@ -64,7 +65,15 @@ class DocuBot:
         ignore punctuation if needed.
         """
         index = {}
-        # TODO: implement simple indexing
+        for filename, text in documents:
+            for word in text.split():
+                token = word.lower().strip(string.punctuation)
+                if not token:
+                    continue
+                if token not in index:
+                    index[token] = []
+                if filename not in index[token]:
+                    index[token].append(filename)
         return index
 
     # -----------------------------------------------------------
@@ -81,8 +90,14 @@ class DocuBot:
         - Count how many appear in the text
         - Return the count as the score
         """
-        # TODO: implement scoring
-        return 0
+        query_words = [w.lower().strip(string.punctuation) for w in query.split()]
+        query_words = [w for w in query_words if w]
+
+        text_lower = text.lower()
+        score = 0
+        for word in query_words:
+            score += text_lower.count(word)
+        return score
 
     def retrieve(self, query, top_k=3):
         """
@@ -91,8 +106,15 @@ class DocuBot:
 
         Return a list of (filename, text) sorted by score descending.
         """
-        results = []
-        # TODO: implement retrieval logic
+        scored = []
+        for filename, text in self.documents:
+            score = self.score_document(query, text)
+            if score > 0:
+                scored.append((score, filename, text))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+
+        results = [(filename, text) for score, filename, text in scored]
         return results[:top_k]
 
     # -----------------------------------------------------------
